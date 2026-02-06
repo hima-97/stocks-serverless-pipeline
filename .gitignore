@@ -1,0 +1,33 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Terraform (do NOT commit state or local terraform cache)
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Terraform variables can include secrets
+*.tfvars
+*.tfvars.json
+
+# Secrets (never commit)
+.env
+.env.*
+*.pem
+*.key
+
+# Build artifacts
+*.zip
+dist/
+build/
