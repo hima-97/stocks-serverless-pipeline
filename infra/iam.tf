@@ -23,7 +23,7 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_logs" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-# Custom policy: allow DynamoDB read/write on our table only
+# Custom policy: allow DynamoDB access on our table only
 data "aws_iam_policy_document" "dynamodb_access" {
   statement {
     effect = "Allow"
@@ -31,7 +31,8 @@ data "aws_iam_policy_document" "dynamodb_access" {
     actions = [
       "dynamodb:PutItem",
       "dynamodb:GetItem",
-      "dynamodb:Query"
+      "dynamodb:Query",
+      "dynamodb:Scan"
     ]
 
     resources = [

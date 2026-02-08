@@ -28,6 +28,8 @@ crash.*.log
 *.key
 
 # Build artifacts
-*.zip
 dist/
 build/
+*.zip
+out*.json
+key.json

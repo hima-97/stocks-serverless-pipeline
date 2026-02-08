@@ -16,6 +16,43 @@ variable "environment" {
   default     = "dev"
 }
 
+variable "massive_base_url" {
+  description = "Base URL for Massive API"
+  type        = string
+  default     = "https://api.massive.com"
+}
+
+variable "massive_api_key" {
+  description = "Massive API key (DO NOT COMMIT)."
+  type        = string
+  sensitive   = true
+}
+
+# Rate-limit / resilience knobs
+variable "request_spacing_seconds" {
+  description = "Delay between ticker calls to avoid RPM throttling"
+  type        = number
+  default     = 1.0
+}
+
+variable "max_attempts" {
+  description = "Max attempts per ticker for retryable errors"
+  type        = number
+  default     = 4
+}
+
+variable "base_backoff_seconds" {
+  description = "Base backoff for retries (429/5xx), exponential"
+  type        = number
+  default     = 15
+}
+
+variable "max_backoff_seconds" {
+  description = "Max backoff cap for retries"
+  type        = number
+  default     = 45
+}
+
 locals {
   common_tags = {
     Project     = var.project_name

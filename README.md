@@ -16,3 +16,12 @@ AAPL, MSFT, GOOGL, AMZN, TSLA, NVDA
 - API Gateway (REST)
 - EventBridge (daily schedule)
 - S3 static website hosting (frontend)
+
+## Overall Repo Layout
+stocks-serverless-pipeline/
+├── infra/          # Terraform (IaC)
+├── lambdas/        # Lambda source code
+├── dist/           # Built zip artifacts
+├── frontend/       # SPA (later)
+├── scripts/        # Helper scripts
+├── README.md
