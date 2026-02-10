@@ -1,0 +1,263 @@
+/* Base + variables */
+:root {
+  --bg: #0b1220;
+  --text: #e8eefc;
+
+  --panel: rgba(255, 255, 255, 0.06);
+  --panel-border: rgba(255, 255, 255, 0.12);
+
+  --border-strong: rgba(255, 255, 255, 0.20);
+  --border-soft: rgba(255, 255, 255, 0.10);
+
+  --btn: rgba(255, 255, 255, 0.12);
+  --btn-hover: rgba(255, 255, 255, 0.18);
+
+  --ui-bg: #111827;
+  --ui-border: #2b3346;
+  --ui-text: #e5e7eb;
+
+  --radius: 14px;
+  --radius-sm: 10px;
+
+  --pos: #34d399; /* green */
+  --neg: #f87171; /* red */
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.container {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 28px 16px;
+}
+
+.header h1 {
+  margin: 0 0 6px 0;
+  font-size: 28px;
+}
+
+.sub {
+  margin: 0;
+  opacity: 0.85;
+}
+
+.card {
+  margin-top: 18px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.row.wrap {
+  flex-wrap: wrap;
+}
+
+.between {
+  justify-content: space-between;
+}
+
+.gap {
+  gap: 10px;
+}
+
+.label {
+  opacity: 0.7;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.small {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
+.status {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+}
+
+.btn {
+  cursor: pointer;
+  background: var(--btn);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font: inherit; /* keeps font consistent */
+}
+
+.btn:hover {
+  background: var(--btn-hover);
+}
+
+.btn.secondary {
+  background: transparent;
+  border: 1px solid var(--ui-border);
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.right {
+  text-align: right;
+}
+
+.pos {
+  font-weight: 700;
+  color: var(--pos);
+}
+
+.neg {
+  font-weight: 700;
+  color: var(--neg);
+}
+
+/* Debug panel */
+.debug {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px dashed var(--ui-border);
+  border-radius: 12px;
+  background: rgba(17, 24, 39, 0.5);
+}
+
+.hidden {
+  display: none;
+}
+
+/* Accessible focus states */
+.btn:focus-visible {
+  outline: 2px solid rgba(229, 231, 235, 0.6);
+  outline-offset: 2px;
+}
+
+/* Sortable table headers */
+.thBtn {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.thBtn:hover {
+  opacity: 0.9;
+}
+
+.thBtn.right {
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.sortIcon {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  opacity: 0.65;
+}
+
+.sortIcon::before {
+  content: "↕";
+}
+
+.sortIcon.asc::before {
+  content: "↑";
+}
+
+.sortIcon.desc::before {
+  content: "↓";
+}
+
+.table th .thBtn {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.table th:last-child .thBtn {
+  justify-content: flex-end;
+}
+
+/* Highlight the row that matches "Biggest move in this window" */
+.tr-highlight {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.tr-highlight td {
+  border-bottom-color: rgba(255, 255, 255, 0.25);
+}
+
+.row.gap.wrap > .row.gap.small {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;                   
+  align-self: center;         
+}
+
+/* Prevent label margins from inflating row height */
+.row.gap.wrap > .row.gap.small .label {
+  margin: 0;
+}
+
+/* Sort icon vertical alignment */
+.sortIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.sortIcon::before {
+  line-height: 1;
+}

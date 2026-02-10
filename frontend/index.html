@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Stocks — Top Mover (Last 7 Full Trading Days)</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="header">
+        <h1>Top Mover — Last 7 Full Trading Days</h1>
+        <p class="sub">
+          Daily biggest absolute % move from the watchlist: AAPL, MSFT, GOOGL, AMZN, TSLA, NVDA
+        </p>
+      </header>
+
+      <section class="card">
+        <div class="row between wrap">
+          <div class="row gap wrap">
+            <button id="refreshBtn" class="btn">Refresh</button>
+
+            <div class="row gap small">
+              <span class="label">Last refreshed</span>
+              <div id="lastRefreshed" class="mono"></div>
+            </div>
+          </div>
+
+          <button id="toggleDebugBtn" class="btn secondary">Debug</button>
+        </div>
+
+        <div class="row wrap" style="margin-top: 30px;">
+          <div>
+            <div class="label">Highlight</div>
+            <div id="highlight" class="small"></div>
+          </div>
+        </div>
+
+        <div id="status" class="status">Loading…</div>
+
+        <div id="debugPanel" class="debug hidden">
+          <div class="label">API</div>
+          <div id="apiUrl" class="mono small"></div>
+        </div>
+
+        <div class="tableWrap">
+          <table class="table" aria-label="Top movers table">
+            <thead>
+              <tr>
+                <th>
+                  <button class="thBtn" data-sort="date" type="button">
+                    Date <span class="sortIcon" data-icon="date"></span>
+                  </button>
+                </th>
+                <th>
+                  <button class="thBtn" data-sort="ticker" type="button">
+                    Ticker <span class="sortIcon" data-icon="ticker"></span>
+                  </button>
+                </th>
+                <th>
+                  <button class="thBtn" data-sort="pct" type="button">
+                    % Change <span class="sortIcon" data-icon="pct"></span>
+                  </button>
+                </th>
+                <th>
+                  <button class="thBtn right" data-sort="close" type="button">
+                    Closing Price <span class="sortIcon" data-icon="close"></span>
+                  </button>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="./config.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
