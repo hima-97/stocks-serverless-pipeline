@@ -1,4 +1,4 @@
-# OS / editor
+# OS / Editor
 .DS_Store
 Thumbs.db
 .vscode/
@@ -10,14 +10,21 @@ __pycache__/
 .venv/
 venv/
 
-# Terraform (do NOT commit state or local terraform cache)
+# Node (harmless even if unused)
+node_modules/
+
+# Terraform (do NOT commit state, plans, or local cache)
 **/.terraform/*
 *.tfstate
 *.tfstate.*
+terraform.tfstate.backup
+*.tfplan
 crash.log
 crash.*.log
+.terraformrc
+terraform.rc
 
-# Terraform variables can include secrets
+# Terraform variables (often contain secrets)
 *.tfvars
 *.tfvars.json
 
@@ -26,10 +33,10 @@ crash.*.log
 .env.*
 *.pem
 *.key
+**/key.json
 
-# Build artifacts
+# Build / Artifacts
 dist/
 build/
 *.zip
 out*.json
-key.json

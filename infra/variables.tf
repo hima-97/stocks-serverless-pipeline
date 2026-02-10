@@ -53,10 +53,18 @@ variable "max_backoff_seconds" {
   default     = 45
 }
 
+variable "ingest_schedule_expression" {
+  description = "EventBridge schedule expression (cron or rate). EventBridge cron uses UTC."
+  type        = string
+}
+
 locals {
+  name_prefix = "${var.project_name}-${var.environment}"
+
   common_tags = {
     Project     = var.project_name
     Environment = var.environment
     ManagedBy   = "Terraform"
   }
 }
+

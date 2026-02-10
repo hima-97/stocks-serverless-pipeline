@@ -29,3 +29,11 @@ output "frontend_bucket_name" {
 output "frontend_website_url" {
   value = "http://${aws_s3_bucket.frontend.bucket}.s3-website-${var.aws_region}.amazonaws.com"
 }
+
+output "ingest_mover_function_name" {
+  value = aws_lambda_function.ingest_mover.function_name
+}
+
+output "eventbridge_rule_name" {
+  value = aws_cloudwatch_event_rule.daily_ingest.name
+}
