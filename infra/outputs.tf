@@ -21,3 +21,11 @@ output "get_movers_role_arn" {
 output "movers_endpoint" {
   value = "${aws_api_gateway_stage.dev.invoke_url}/movers"
 }
+
+output "frontend_bucket_name" {
+  value = aws_s3_bucket.frontend.bucket
+}
+
+output "frontend_website_url" {
+  value = "http://${aws_s3_bucket.frontend.bucket}.s3-website-${var.aws_region}.amazonaws.com"
+}
