@@ -21,7 +21,6 @@ variable "environment" {
   }
 }
 
-
 variable "massive_base_url" {
   description = "Base URL for Massive API"
   type        = string
@@ -29,12 +28,12 @@ variable "massive_base_url" {
 }
 
 variable "massive_api_key" {
-  description = "Massive API key (DO NOT COMMIT)."
+  description = "Massive API key (DO NOT COMMIT). Used only to seed SSM Parameter Store."
   type        = string
   sensitive   = true
 }
 
-# Rate-limit / resilience knobs
+# Rate-limit / resilience knobs (may be unused if you hardcode env vars in lambda_ingest.tf)
 variable "request_spacing_seconds" {
   description = "Delay between ticker calls to avoid RPM throttling"
   type        = number
@@ -62,6 +61,14 @@ variable "max_backoff_seconds" {
 variable "ingest_schedule_expression" {
   description = "EventBridge schedule expression (cron or rate). EventBridge cron uses UTC."
   type        = string
+
+  validation {
+    condition = (
+      can(regex("^cron\\(.+\\)$", var.ingest_schedule_expression)) ||
+      can(regex("^rate\\(.+\\)$", var.ingest_schedule_expression))
+    )
+    error_message = "ingest_schedule_expression must start with cron(...) or rate(...)."
+  }
 }
 
 variable "allowed_account_ids" {

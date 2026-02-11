@@ -18,9 +18,9 @@ resource "aws_lambda_function" "ingest_mover" {
 
   environment {
     variables = {
-      TABLE_NAME       = aws_dynamodb_table.top_movers.name
-      MASSIVE_BASE_URL = "https://api.massive.com"
-      MASSIVE_API_KEY  = var.massive_api_key
+      TABLE_NAME            = aws_dynamodb_table.top_movers.name
+      MASSIVE_BASE_URL      = "https://api.massive.com"
+      MASSIVE_API_KEY_PARAM = aws_ssm_parameter.massive_api_key.name
 
       # Pacing: safe default to avoid RPM limits (6 calls ≈ 62.5 seconds + network/retry time)
       REQUEST_SPACING_SECONDS = "12.5"

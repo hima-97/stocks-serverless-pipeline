@@ -12,6 +12,24 @@ from botocore.exceptions import ClientError
 
 WATCHLIST = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA"]
 
+_ssm = boto3.client("ssm")
+_cached_api_key = None
+
+
+def _get_massive_api_key() -> str:
+    """Fetch Massive API key from SSM Parameter Store (SecureString). Cache across warm invocations."""
+    global _cached_api_key
+    if _cached_api_key:
+        return _cached_api_key
+
+    param_name = os.environ.get("MASSIVE_API_KEY_PARAM")
+    if not param_name:
+        raise RuntimeError("Missing env var MASSIVE_API_KEY_PARAM")
+
+    resp = _ssm.get_parameter(Name=param_name, WithDecryption=True)
+    _cached_api_key = resp["Parameter"]["Value"]
+    return _cached_api_key
+
 
 def _get_env(name: str, default: str | None = None) -> str:
     v = os.environ.get(name, default)
@@ -29,13 +47,11 @@ def _to_ddb_number(x: float, places: int = 6) -> Decimal:
     q = Decimal("1." + ("0" * places))
     return Decimal(str(x)).quantize(q, rounding=ROUND_HALF_UP)
 
-# Smooth pacing rate limiter:
-# Smooth spacing avoids bursts that cause random 429s, and is more efficient than sleeping a long time after a 429 occurs.
-# Ensures at least min_interval seconds between API calls, with some jitter to avoid synchronization.
+
 class SmoothRateLimiter:
     """
     Ensures at least min_interval seconds between outbound API calls.
-    Simply, we pace requests to avoid rate limiting.
+    We pace requests to avoid rate limiting.
     """
 
     def __init__(self, min_interval_seconds: float):
@@ -130,7 +146,7 @@ def _percent_change(open_price: float, close_price: float) -> float:
 
 def handler(event, context):
     table_name = _get_env("TABLE_NAME")
-    api_key = _get_env("MASSIVE_API_KEY")
+    api_key = _get_massive_api_key()
 
     # Stable default: 12.5s spacing => 6 calls ~ 62.5s (helps avoid RPM caps)
     spacing_s = float(_get_env("REQUEST_SPACING_SECONDS", "12.5"))
@@ -149,7 +165,6 @@ def handler(event, context):
         raise RuntimeError(f"DynamoDB get_item failed: {e}")
 
     if existing:
-        # Already computed earlier (or from a previous manual run) — avoid 5 more API calls.
         return {
             "statusCode": 200,
             "body": json.dumps(
@@ -175,7 +190,6 @@ def handler(event, context):
     successes = []
     failures = []
 
-    # include AAPL from the first call (so we don't call it twice)
     pct0 = _percent_change(o0, c0)
     successes.append(
         {
@@ -190,7 +204,6 @@ def handler(event, context):
             limiter.acquire()
             date_str, o, c = _fetch_prev_day_open_close(ticker, api_key)
 
-            # Safety: ensure Massive returned the same trading date across tickers
             if date_str != trading_date:
                 raise RuntimeError(f"Date mismatch: expected {trading_date}, got {date_str}")
 
@@ -206,11 +219,9 @@ def handler(event, context):
         except Exception as e:
             failures.append({"Ticker": ticker, "Error": str(e)})
 
-    # All-or-nothing: if any failed, don't write fake winner
     if failures:
         raise RuntimeError(f"One or more tickers failed; refusing to store. failures={failures}")
 
-    # Determine top mover by absolute percent change
     top = None
     for c in successes:
         if top is None or abs(c["PercentChange"]) > abs(top["PercentChange"]):
