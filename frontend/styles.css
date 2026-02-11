@@ -113,7 +113,7 @@ body {
   padding: 10px 14px;
   border-radius: var(--radius-sm);
   font-weight: 600;
-  font: inherit; /* keeps font consistent */
+  font: inherit;
 }
 
 .btn:hover {
@@ -178,6 +178,8 @@ body {
   display: inline-flex;
   gap: 8px;
   align-items: center;
+  width: 100%;
+  justify-content: flex-start;
 }
 
 .thBtn:hover {
@@ -186,13 +188,17 @@ body {
 
 .thBtn.right {
   justify-content: flex-end;
-  width: 100%;
 }
 
+/* Sort icons (single definition) */
 .sortIcon {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 12px;
   height: 12px;
+  font-size: 12px;
+  line-height: 1;
   opacity: 0.65;
 }
 
@@ -208,11 +214,7 @@ body {
   content: "↓";
 }
 
-.table th .thBtn {
-  width: 100%;
-  justify-content: flex-start;
-}
-
+/* Last column header button aligns right */
 .table th:last-child .thBtn {
   justify-content: flex-end;
 }
@@ -226,6 +228,7 @@ body {
   border-bottom-color: rgba(255, 255, 255, 0.25);
 }
 
+/* Layout tweak for "Last refreshed" stack */
 .row.gap.wrap > .row.gap.small {
   flex-direction: column;
   align-items: flex-start;
@@ -236,25 +239,4 @@ body {
 /* Prevent label margins from inflating row height */
 .row.gap.wrap > .row.gap.small .label {
   margin: 0;
-}
-
-/* Sort icon vertical alignment */
-.sortIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 12px;
-  height: 12px;
-  font-size: 12px;
-  line-height: 1;
-}
-
-.sortIcon::before {
-  line-height: 1;
-}
-
-
-.table th:last-child .thBtn {
-  width: auto;        
-  justify-content: flex-start;
 }

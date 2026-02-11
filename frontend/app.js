@@ -28,10 +28,10 @@ function setStatus(msg) {
 }
 
 function clearTable() {
-  if (tbodyEl) tbodyEl.innerHTML = "";
+  if (tbodyEl) tbodyEl.textContent = "";
 }
 
-function abs(n) {
+function absVal(n) {
   const num = Number(n);
   return Number.isFinite(num) ? Math.abs(num) : -Infinity;
 }
@@ -45,6 +45,13 @@ function makeRowKey(item) {
   return `${item?.Date ?? ""}|${item?.Ticker ?? ""}`;
 }
 
+function makeTd(text, className) {
+  const td = document.createElement("td");
+  if (className) td.className = className;
+  td.textContent = text ?? "";
+  return td;
+}
+
 function addRow(item) {
   if (!tbodyEl) return;
 
@@ -53,16 +60,18 @@ function addRow(item) {
   const pct = Number(item.PercentChange);
   const pctClass = pct >= 0 ? "pos" : "neg";
 
-  tr.innerHTML = `
-    <td>${item.Date ?? ""}</td>
-    <td class="mono">${item.Ticker ?? ""}</td>
-    <td class="${pctClass}">${fmtPct(pct)}</td>
-    <td class="right">${fmtPrice(item.ClosingPrice)}</td>
-  `;
+  const tdDate = makeTd(item.Date ?? "");
+  const tdTicker = makeTd(item.Ticker ?? "", "mono");
+  const tdPct = makeTd(fmtPct(pct), pctClass);
+  const tdClose = makeTd(fmtPrice(item.ClosingPrice), "right");
 
-  // Strong color cue
-  const pctTd = tr.children[2];
-  if (pctTd) pctTd.style.color = pct >= 0 ? "#2ee59d" : "#ff5c7a";
+  // Strong color cue (optional)
+  tdPct.style.color = pct >= 0 ? "#2ee59d" : "#ff5c7a";
+
+  tr.appendChild(tdDate);
+  tr.appendChild(tdTicker);
+  tr.appendChild(tdPct);
+  tr.appendChild(tdClose);
 
   // Highlight the biggest-move row
   if (highlightKey && makeRowKey(item) === highlightKey) {
@@ -81,7 +90,7 @@ function sortData(data, key, dir) {
     if (key === "ticker") return mul * String(a.Ticker ?? "").localeCompare(String(b.Ticker ?? ""));
 
     // Sort % by absolute magnitude, not signed value
-    if (key === "pct") return mul * (abs(a.PercentChange) - abs(b.PercentChange));
+    if (key === "pct") return mul * (absVal(a.PercentChange) - absVal(b.PercentChange));
 
     if (key === "close") return mul * (Number(a.ClosingPrice) - Number(b.ClosingPrice));
     return 0;
@@ -97,31 +106,27 @@ function renderTable() {
 }
 
 function updateSortIcons() {
-  // Reset all icons, then set the active one
   const icons = Array.from(document.querySelectorAll(".sortIcon"));
   icons.forEach((el) => el.classList.remove("asc", "desc"));
 
   const active = document.querySelector(`.sortIcon[data-icon="${sortState.key}"]`);
-  if (active) {
-    active.classList.add(sortState.dir === "asc" ? "asc" : "desc");
-  }
+  if (active) active.classList.add(sortState.dir === "asc" ? "asc" : "desc");
 }
 
 function updateHighlight(data) {
   highlightKey = null;
 
   if (!highlightEl) return;
-  if (!Array.isArray(data) || data.length === 0) {
-    highlightEl.textContent = "";
-    return;
-  }
+  highlightEl.textContent = "";
+
+  if (!Array.isArray(data) || data.length === 0) return;
 
   // Biggest absolute move in the window
   let best = data[0];
-  let bestAbs = abs(best.PercentChange);
+  let bestAbs = absVal(best.PercentChange);
 
   for (const item of data) {
-    const v = abs(item.PercentChange);
+    const v = absVal(item.PercentChange);
     if (v > bestAbs) {
       best = item;
       bestAbs = v;
@@ -132,9 +137,22 @@ function updateHighlight(data) {
   const dir = pct >= 0 ? "up" : "down";
   highlightKey = makeRowKey(best);
 
-  highlightEl.innerHTML = `Biggest move in this window: <span class="mono">${best.Ticker}</span> ${fmtPct(
-    pct
-  )} (${dir}) on <span class="mono">${best.Date}</span>`;
+  // Build highlight UI without innerHTML
+  const prefix = document.createTextNode("Biggest move in this window: ");
+  const tickerSpan = document.createElement("span");
+  tickerSpan.className = "mono";
+  tickerSpan.textContent = best.Ticker ?? "";
+
+  const middle = document.createTextNode(` ${fmtPct(pct)} (${dir}) on `);
+
+  const dateSpan = document.createElement("span");
+  dateSpan.className = "mono";
+  dateSpan.textContent = best.Date ?? "";
+
+  highlightEl.appendChild(prefix);
+  highlightEl.appendChild(tickerSpan);
+  highlightEl.appendChild(middle);
+  highlightEl.appendChild(dateSpan);
 }
 
 function updateLastRefreshed() {
@@ -199,7 +217,6 @@ function wireHeaderSorting() {
       }
 
       updateSortIcons();
-      // Re-render only; do NOT recompute highlight/window
       renderTable();
     });
   });
@@ -236,9 +253,7 @@ async function load() {
       return;
     }
 
-    // Recompute highlight for the *window*, then render (which uses highlightKey)
     updateHighlight(lastData);
-
     updateSortIcons();
     renderTable();
     setLoadedRangeStatus(lastData);
@@ -247,7 +262,6 @@ async function load() {
   }
 }
 
-// Wire events only if the elements exist
 if (refreshBtn) refreshBtn.addEventListener("click", load);
 
 wireHeaderSorting();
