@@ -58,7 +58,11 @@ resource "aws_s3_object" "index" {
   key          = "index.html"
   source       = "${path.module}/../frontend/index.html"
   content_type = "text/html"
-  etag         = filemd5("${path.module}/../frontend/index.html")
+
+  # Prevent stale UI when iterating quickly during take-home development
+  cache_control = "no-cache, no-store, must-revalidate"
+
+  etag = filemd5("${path.module}/../frontend/index.html")
 }
 
 resource "aws_s3_object" "styles" {
@@ -66,7 +70,10 @@ resource "aws_s3_object" "styles" {
   key          = "styles.css"
   source       = "${path.module}/../frontend/styles.css"
   content_type = "text/css"
-  etag         = filemd5("${path.module}/../frontend/styles.css")
+
+  cache_control = "no-cache, no-store, must-revalidate"
+
+  etag = filemd5("${path.module}/../frontend/styles.css")
 }
 
 resource "aws_s3_object" "app" {
@@ -74,7 +81,10 @@ resource "aws_s3_object" "app" {
   key          = "app.js"
   source       = "${path.module}/../frontend/app.js"
   content_type = "application/javascript"
-  etag         = filemd5("${path.module}/../frontend/app.js")
+
+  cache_control = "no-cache, no-store, must-revalidate"
+
+  etag = filemd5("${path.module}/../frontend/app.js")
 }
 
 # Generate config.js directly (no local_file; avoids Windows file timing issues)
@@ -82,6 +92,8 @@ resource "aws_s3_object" "config" {
   bucket       = aws_s3_bucket.frontend.id
   key          = "config.js"
   content_type = "application/javascript"
+
+  cache_control = "no-cache, no-store, must-revalidate"
 
   content = <<EOT
 window.APP_CONFIG = {

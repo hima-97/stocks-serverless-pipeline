@@ -1,12 +1,8 @@
-const apiUrlEl = document.getElementById("apiUrl");
 const statusEl = document.getElementById("status");
 const tbodyEl = document.getElementById("tbody");
 const refreshBtn = document.getElementById("refreshBtn");
 const lastRefreshedEl = document.getElementById("lastRefreshed");
 const highlightEl = document.getElementById("highlight");
-
-const toggleDebugBtn = document.getElementById("toggleDebugBtn");
-const debugPanel = document.getElementById("debugPanel");
 
 const headerBtns = Array.from(document.querySelectorAll(".thBtn"));
 
@@ -214,11 +210,8 @@ async function load() {
 
   if (!base || base === "REPLACE_ME") {
     setStatus("Config error: API URL not set (Terraform should set it).");
-    if (apiUrlEl) apiUrlEl.textContent = "";
     return;
   }
-
-  if (apiUrlEl) apiUrlEl.textContent = `${base}/movers`;
 
   setStatus("Loading…");
   clearTable();
@@ -256,12 +249,6 @@ async function load() {
 
 // Wire events only if the elements exist
 if (refreshBtn) refreshBtn.addEventListener("click", load);
-
-if (toggleDebugBtn && debugPanel) {
-  toggleDebugBtn.addEventListener("click", () => {
-    debugPanel.classList.toggle("hidden");
-  });
-}
 
 wireHeaderSorting();
 load();

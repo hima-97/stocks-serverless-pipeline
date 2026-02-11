@@ -155,15 +155,6 @@ body {
   color: var(--neg);
 }
 
-/* Debug panel */
-.debug {
-  margin-top: 10px;
-  padding: 10px;
-  border: 1px dashed var(--ui-border);
-  border-radius: 12px;
-  background: rgba(17, 24, 39, 0.5);
-}
-
 .hidden {
   display: none;
 }
@@ -238,8 +229,8 @@ body {
 .row.gap.wrap > .row.gap.small {
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;                   
-  align-self: center;         
+  gap: 2px;
+  align-self: center;
 }
 
 /* Prevent label margins from inflating row height */
@@ -260,4 +251,10 @@ body {
 
 .sortIcon::before {
   line-height: 1;
+}
+
+
+.table th:last-child .thBtn {
+  width: auto;        
+  justify-content: flex-start;
 }
