@@ -31,7 +31,7 @@ variable "massive_base_url" {
 # Massive API Key
 # ----------------------------------------------------
 # Used only to initially seed SSM Parameter Store.
-# After SSM exists, Terraform does not require this.
+# After SSM exists, Terraform does not require this.  (Note: fixed in a later improvement by adding ignore_changes)
 # Default = null prevents interactive prompts.
 variable "massive_api_key" {
   description = "Massive API key (used only to seed SSM Parameter Store)."
@@ -41,12 +41,12 @@ variable "massive_api_key" {
 }
 
 # ----------------------------------------------------
-# Rate-limit / resilience knobs
+# Rate-limit / resilience knobs (wired into ingest Lambda env vars)
 # ----------------------------------------------------
 variable "request_spacing_seconds" {
   description = "Delay between ticker calls to avoid RPM throttling"
   type        = number
-  default     = 1.0
+  default     = 12.5
 }
 
 variable "max_attempts" {
@@ -56,15 +56,21 @@ variable "max_attempts" {
 }
 
 variable "base_backoff_seconds" {
-  description = "Base backoff for retries (429/5xx), exponential"
+  description = "Base backoff (seconds) for Massive throttling (HTTP 429), exponential"
   type        = number
-  default     = 15
+  default     = 2
+}
+
+variable "base_5xx_backoff_seconds" {
+  description = "Base backoff (seconds) for transient Massive/API failures (HTTP 5xx), exponential"
+  type        = number
+  default     = 0.5
 }
 
 variable "max_backoff_seconds" {
-  description = "Max backoff cap for retries"
+  description = "Max backoff cap (seconds) for retries"
   type        = number
-  default     = 45
+  default     = 10
 }
 
 # ----------------------------------------------------

@@ -19,17 +19,17 @@ resource "aws_lambda_function" "ingest_mover" {
   environment {
     variables = {
       TABLE_NAME            = aws_dynamodb_table.top_movers.name
-      MASSIVE_BASE_URL      = "https://api.massive.com"
+      MASSIVE_BASE_URL      = var.massive_base_url
       MASSIVE_API_KEY_PARAM = aws_ssm_parameter.massive_api_key.name
 
-      # Pacing: safe default to avoid RPM limits (6 calls ≈ 62.5 seconds + network/retry time)
-      REQUEST_SPACING_SECONDS = "12.5"
+      # Pacing: avoid RPM throttling (configured via tfvars)
+      REQUEST_SPACING_SECONDS = tostring(var.request_spacing_seconds)
 
-      # Retry controls (bounded)
-      MAX_ATTEMPTS             = "4"
-      BASE_429_BACKOFF_SECONDS = "2"
-      BASE_5XX_BACKOFF_SECONDS = "0.5"
-      MAX_BACKOFF_SECONDS      = "10"
+      # Retry controls (bounded, configured via tfvars)
+      MAX_ATTEMPTS             = tostring(var.max_attempts)
+      BASE_429_BACKOFF_SECONDS = tostring(var.base_backoff_seconds)
+      BASE_5XX_BACKOFF_SECONDS = tostring(var.base_5xx_backoff_seconds)
+      MAX_BACKOFF_SECONDS      = tostring(var.max_backoff_seconds)
     }
   }
 }
