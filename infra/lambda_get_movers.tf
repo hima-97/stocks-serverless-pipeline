@@ -5,7 +5,7 @@ data "archive_file" "get_movers_zip" {
 }
 
 resource "aws_lambda_function" "get_movers" {
-  function_name = "${var.project_name}-${var.environment}-get-movers"
+  function_name = "${local.name_prefix}-get-movers"
   role          = aws_iam_role.get_movers_role.arn
   handler       = "app.handler"
   runtime       = "python3.12"

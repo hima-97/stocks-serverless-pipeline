@@ -5,7 +5,7 @@ data "archive_file" "ingest_zip" {
 }
 
 resource "aws_lambda_function" "ingest_mover" {
-  function_name = "${var.project_name}-${var.environment}-ingest-mover"
+  function_name = "${local.name_prefix}-ingest-mover"
   role          = aws_iam_role.lambda_exec_role.arn
   runtime       = "python3.12"
   handler       = "app.handler"

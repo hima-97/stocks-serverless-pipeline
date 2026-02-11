@@ -1,6 +1,6 @@
 locals {
   # Globally-unique bucket name requirement: include account ID
-  frontend_bucket_name = "${var.project_name}-${var.environment}-frontend-${data.aws_caller_identity.current.account_id}"
+  frontend_bucket_name = "${local.name_prefix}-frontend-${data.aws_caller_identity.current.account_id}"
   api_base_url         = aws_api_gateway_stage.dev.invoke_url
 }
 

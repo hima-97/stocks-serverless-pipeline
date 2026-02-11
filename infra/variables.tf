@@ -58,13 +58,7 @@ variable "ingest_schedule_expression" {
   type        = string
 }
 
-locals {
-  name_prefix = "${var.project_name}-${var.environment}"
-
-  common_tags = {
-    Project     = var.project_name
-    Environment = var.environment
-    ManagedBy   = "Terraform"
-  }
+variable "allowed_account_ids" {
+  description = "List of AWS account IDs Terraform is allowed to operate in"
+  type        = list(string)
 }
-

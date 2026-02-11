@@ -12,9 +12,8 @@ data "aws_iam_policy_document" "lambda_assume_role" {
 }
 
 resource "aws_iam_role" "lambda_exec_role" {
-  name               = "${var.project_name}-${var.environment}-lambda-exec-role"
+  name               = "${local.name_prefix}-lambda-exec-role"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
-  tags               = local.common_tags
 }
 
 # Basic logging to CloudWatch (so Lambda can write logs)
@@ -40,9 +39,8 @@ data "aws_iam_policy_document" "dynamodb_access" {
 }
 
 resource "aws_iam_policy" "lambda_dynamodb_policy" {
-  name   = "${var.project_name}-${var.environment}-lambda-dynamodb-policy"
+  name   = "${local.name_prefix}-lambda-dynamodb-policy"
   policy = data.aws_iam_policy_document.dynamodb_access.json
-  tags   = local.common_tags
 }
 
 resource "aws_iam_role_policy_attachment" "lambda_dynamodb_attach" {
@@ -51,7 +49,7 @@ resource "aws_iam_role_policy_attachment" "lambda_dynamodb_attach" {
 }
 
 resource "aws_iam_role" "get_movers_role" {
-  name = "${var.project_name}-${var.environment}-get-movers-role"
+  name = "${local.name_prefix}-get-movers-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -69,7 +67,7 @@ resource "aws_iam_role_policy_attachment" "get_movers_basic_logs" {
 }
 
 resource "aws_iam_policy" "get_movers_ddb_policy" {
-  name = "${var.project_name}-${var.environment}-get-movers-ddb"
+  name = "${local.name_prefix}-get-movers-ddb"
 
   policy = jsonencode({
     Version = "2012-10-17"

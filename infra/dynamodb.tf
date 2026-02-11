@@ -1,5 +1,5 @@
 resource "aws_dynamodb_table" "top_movers" {
-  name         = "${var.project_name}-${var.environment}-top-movers"
+  name         = "${local.name_prefix}-top-movers"
   billing_mode = "PAY_PER_REQUEST"
 
   hash_key  = "pk"
@@ -14,6 +14,4 @@ resource "aws_dynamodb_table" "top_movers" {
     name = "sk"
     type = "S"
   }
-
-  tags = local.common_tags
 }

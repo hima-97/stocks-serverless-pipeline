@@ -2,7 +2,7 @@
 # It also includes the necessary permissions for API Gateway to invoke the Lambda.
 
 resource "aws_api_gateway_rest_api" "stocks_api" {
-  name = "${var.project_name}-${var.environment}-api"
+  name = "${local.name_prefix}-api"
 }
 
 resource "aws_api_gateway_resource" "movers" {
