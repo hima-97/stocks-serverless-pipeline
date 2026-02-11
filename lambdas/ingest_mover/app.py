@@ -171,6 +171,8 @@ def handler(event, context):
                 {
                     "stored": False,
                     "cached": True,
+                    "message": "already_stored",
+                    "tradingDate": trading_date,
                     "item": {
                         "pk": existing["pk"],
                         "sk": existing["sk"],
@@ -179,12 +181,14 @@ def handler(event, context):
                         "PercentChange": float(existing["PercentChange"]),
                         "ClosingPrice": float(existing["ClosingPrice"]),
                     },
-                    "successCount": 6,
+                    # No full watchlist fetch happened on this path.
+                    "successCount": 0,
                     "failureCount": 0,
                     "failures": [],
                 }
             ),
         }
+
 
     # --- Step 2: Not stored yet → fetch ALL 6 (all-or-nothing) ---
     successes = []
