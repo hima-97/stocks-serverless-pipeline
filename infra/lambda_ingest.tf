@@ -14,7 +14,9 @@ resource "aws_lambda_function" "ingest_mover" {
   source_code_hash = data.archive_file.ingest_zip.output_base64sha256
 
   memory_size = 128
-  timeout     = 120
+  # Increased from 120s to 180s to allow headroom for retries
+  # in worst-case throttling scenarios.
+  timeout = 180
 
   environment {
     variables = {
