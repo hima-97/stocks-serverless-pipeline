@@ -1,4 +1,4 @@
-# This file is a standalone script to backfill the DynamoDB table with the last 7 full trading days of data, 
+# This file is a standalone script to backfill the DynamoDB table with the last 7 full trading days of data,
 # as of a specified end date. It can be run from the command line and is idempotent (safe to re-run without creating duplicates).
 
 import argparse
@@ -184,7 +184,8 @@ def put_winner(table, date_str: str, ticker: str, pct: float, close: float) -> N
         "Date": date_str,
         "Ticker": ticker,
         "PercentChange": _to_ddb_number(pct, places=6),
-        "ClosingPrice": _to_ddb_number(close, places=2),
+        # Align with ingestion Lambda precision (6 decimals)
+        "ClosingPrice": _to_ddb_number(close, places=6),
     }
     table.put_item(
         Item=item,
