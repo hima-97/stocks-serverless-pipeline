@@ -26,7 +26,7 @@ def _resp(status_code: int, body_obj):
         "headers": {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Headers": "Content-Type",
+            "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
             "Access-Control-Allow-Methods": "GET,OPTIONS",
         },
         "body": json.dumps(body_obj),
