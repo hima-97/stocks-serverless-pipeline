@@ -13,13 +13,15 @@ provider "aws" {
   region = "us-west-2"
 }
 
+data "aws_caller_identity" "current" {}
+
 # S3 bucket for Terraform state
 resource "aws_s3_bucket" "tf_state" {
-  bucket = "stocks-serverless-pipeline-terraform-state-876442842164"
+  bucket = "stocks-serverless-pipeline-terraform-state-${data.aws_caller_identity.current.account_id}"
 }
 
-# Enable versioning (best practice for Terraform state recovery)
-resource "aws_s3_bucket_versioning" "tf_state" {
+# Enable versioning (state recovery safety)
+resource "aws_s3_bucket_versioning" "tf_state_versioning" {
   bucket = aws_s3_bucket.tf_state.id
 
   versioning_configuration {
