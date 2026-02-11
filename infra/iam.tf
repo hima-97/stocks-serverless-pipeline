@@ -3,6 +3,9 @@ data "aws_kms_alias" "ssm" {
   name = "alias/aws/ssm"
 }
 
+# -----------------------------
+# Shared Lambda assume role doc
+# -----------------------------
 data "aws_iam_policy_document" "lambda_assume_role" {
   statement {
     effect = "Allow"
@@ -16,19 +19,22 @@ data "aws_iam_policy_document" "lambda_assume_role" {
   }
 }
 
+# -----------------------------
+# Ingestion Lambda Role
+# -----------------------------
 resource "aws_iam_role" "lambda_exec_role" {
   name               = "${local.name_prefix}-lambda-exec-role"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
 }
 
-# Basic logging to CloudWatch (so Lambda can write logs)
+# Basic logging to CloudWatch
 resource "aws_iam_role_policy_attachment" "lambda_basic_logs" {
   role       = aws_iam_role.lambda_exec_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-# Custom policy: allow DynamoDB access on our table only (ingestion lambda)
-data "aws_iam_policy_document" "dynamodb_access" {
+# DynamoDB access for ingestion Lambda (table only)
+data "aws_iam_policy_document" "ingest_dynamodb_access" {
   statement {
     effect = "Allow"
     actions = [
@@ -41,58 +47,19 @@ data "aws_iam_policy_document" "dynamodb_access" {
   }
 }
 
-resource "aws_iam_policy" "lambda_dynamodb_policy" {
-  name   = "${local.name_prefix}-lambda-dynamodb-policy"
-  policy = data.aws_iam_policy_document.dynamodb_access.json
+resource "aws_iam_policy" "ingest_dynamodb_policy" {
+  name   = "${local.name_prefix}-ingest-ddb"
+  policy = data.aws_iam_policy_document.ingest_dynamodb_access.json
 }
 
-resource "aws_iam_role_policy_attachment" "lambda_dynamodb_attach" {
+resource "aws_iam_role_policy_attachment" "ingest_dynamodb_attach" {
   role       = aws_iam_role.lambda_exec_role.name
-  policy_arn = aws_iam_policy.lambda_dynamodb_policy.arn
+  policy_arn = aws_iam_policy.ingest_dynamodb_policy.arn
 }
 
-# ---- Retrieval Lambda role (GET /movers) ----
-
-resource "aws_iam_role" "get_movers_role" {
-  name = "${local.name_prefix}-get-movers-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect    = "Allow"
-      Action    = "sts:AssumeRole"
-      Principal = { Service = "lambda.amazonaws.com" }
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "get_movers_basic_logs" {
-  role       = aws_iam_role.get_movers_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
-
-resource "aws_iam_policy" "get_movers_ddb_policy" {
-  name = "${local.name_prefix}-get-movers-ddb"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["dynamodb:Query"]
-      Resource = aws_dynamodb_table.top_movers.arn
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "get_movers_ddb_attach" {
-  role       = aws_iam_role.get_movers_role.name
-  policy_arn = aws_iam_policy.get_movers_ddb_policy.arn
-}
-
-# ---- Ingestion Lambda extra access: read Massive API key from SSM Parameter Store ----
-# Requires aws_ssm_parameter.massive_api_key to exist (in infra/ssm.tf)
-data "aws_iam_policy_document" "ingest_extra_access" {
-  # Read the SecureString parameter value
+# SSM + KMS decrypt access for ingestion Lambda (Massive API key)
+# Requires aws_ssm_parameter.massive_api_key to exist (infra/ssm.tf)
+data "aws_iam_policy_document" "ingest_ssm_kms_access" {
   statement {
     effect = "Allow"
     actions = [
@@ -103,7 +70,6 @@ data "aws_iam_policy_document" "ingest_extra_access" {
     ]
   }
 
-  # Decrypt SecureString using the default AWS-managed key for SSM Parameter Store
   statement {
     effect = "Allow"
     actions = [
@@ -115,8 +81,48 @@ data "aws_iam_policy_document" "ingest_extra_access" {
   }
 }
 
-resource "aws_iam_role_policy" "ingest_extra_access" {
-  name   = "${local.name_prefix}-ingest-ssm-access"
-  role   = aws_iam_role.lambda_exec_role.id
-  policy = data.aws_iam_policy_document.ingest_extra_access.json
+resource "aws_iam_policy" "ingest_ssm_kms_policy" {
+  name   = "${local.name_prefix}-ingest-ssm-kms"
+  policy = data.aws_iam_policy_document.ingest_ssm_kms_access.json
+}
+
+resource "aws_iam_role_policy_attachment" "ingest_ssm_kms_attach" {
+  role       = aws_iam_role.lambda_exec_role.name
+  policy_arn = aws_iam_policy.ingest_ssm_kms_policy.arn
+}
+
+# -----------------------------
+# Retrieval Lambda Role (GET /movers)
+# -----------------------------
+resource "aws_iam_role" "get_movers_role" {
+  name               = "${local.name_prefix}-get-movers-role"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "get_movers_basic_logs" {
+  role       = aws_iam_role.get_movers_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+# DynamoDB Query access for retrieval Lambda (table only)
+data "aws_iam_policy_document" "get_movers_ddb_access" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "dynamodb:Query",
+    ]
+    resources = [
+      aws_dynamodb_table.top_movers.arn,
+    ]
+  }
+}
+
+resource "aws_iam_policy" "get_movers_ddb_policy" {
+  name   = "${local.name_prefix}-get-movers-ddb"
+  policy = data.aws_iam_policy_document.get_movers_ddb_access.json
+}
+
+resource "aws_iam_role_policy_attachment" "get_movers_ddb_attach" {
+  role       = aws_iam_role.get_movers_role.name
+  policy_arn = aws_iam_policy.get_movers_ddb_policy.arn
 }
