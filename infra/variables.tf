@@ -27,13 +27,22 @@ variable "massive_base_url" {
   default     = "https://api.massive.com"
 }
 
+# ----------------------------------------------------
+# Massive API Key
+# ----------------------------------------------------
+# Used only to initially seed SSM Parameter Store.
+# After SSM exists, Terraform does not require this.
+# Default = null prevents interactive prompts.
 variable "massive_api_key" {
-  description = "Massive API key (DO NOT COMMIT). Used only to seed SSM Parameter Store."
+  description = "Massive API key (used only to seed SSM Parameter Store)."
   type        = string
   sensitive   = true
+  default     = null
 }
 
-# Rate-limit / resilience knobs (may be unused if you hardcode env vars in lambda_ingest.tf)
+# ----------------------------------------------------
+# Rate-limit / resilience knobs
+# ----------------------------------------------------
 variable "request_spacing_seconds" {
   description = "Delay between ticker calls to avoid RPM throttling"
   type        = number
@@ -58,9 +67,13 @@ variable "max_backoff_seconds" {
   default     = 45
 }
 
+# ----------------------------------------------------
+# Scheduling (EventBridge)
+# ----------------------------------------------------
 variable "ingest_schedule_expression" {
   description = "EventBridge schedule expression (cron or rate). EventBridge cron uses UTC."
   type        = string
+  default     = "cron(30 0 * * ? *)"
 
   validation {
     condition = (
@@ -71,7 +84,13 @@ variable "ingest_schedule_expression" {
   }
 }
 
+# ----------------------------------------------------
+# Safety guard
+# ----------------------------------------------------
+# Empty list = no account restriction.
+# If you want enforcement, provide IDs explicitly.
 variable "allowed_account_ids" {
   description = "List of AWS account IDs Terraform is allowed to operate in"
   type        = list(string)
+  default     = []
 }
