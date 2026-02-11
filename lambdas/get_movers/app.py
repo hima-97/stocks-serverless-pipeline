@@ -1,9 +1,14 @@
 import os
 import json
+import logging
 from decimal import Decimal
 
 import boto3
 from boto3.dynamodb.conditions import Key
+
+# CloudWatch logging (Lambda captures stdout/stderr + logging)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 dynamodb = boto3.resource("dynamodb")
 
@@ -20,7 +25,7 @@ def _to_jsonable(x):
 
 
 def _resp(status_code: int, body_obj):
-    # CORS now so Step 2 (API Gateway) + Step 4 (Frontend) work cleanly.
+    # CORS headers so frontend can call API Gateway cleanly
     return {
         "statusCode": status_code,
         "headers": {
@@ -34,9 +39,7 @@ def _resp(status_code: int, body_obj):
 
 
 def _public_item(item: dict) -> dict:
-    """
-    Return only the fields required by the API contract / PDF.
-    """
+    """Return only the fields required by the API contract / PDF."""
     return {
         "Date": item.get("Date"),
         "Ticker": item.get("Ticker"),
@@ -46,9 +49,12 @@ def _public_item(item: dict) -> dict:
 
 
 def handler(event, context):
+    request_id = getattr(context, "aws_request_id", "unknown")
     table_name = os.environ.get("TABLE_NAME")
+
     if not table_name:
-        return _resp(500, {"error": "Missing TABLE_NAME env var"})
+        logger.error("[%s] Missing TABLE_NAME env var", request_id)
+        return _resp(500, {"error": "Internal server error"})
 
     table = dynamodb.Table(table_name)
 
@@ -60,11 +66,12 @@ def handler(event, context):
         )
 
         items = out.get("Items", [])
-
-        # Only expose fields required by the project spec
         public_items = [_public_item(item) for item in items]
 
+        logger.info("[%s] Returned %d mover records", request_id, len(public_items))
         return _resp(200, _to_jsonable(public_items))
 
     except Exception as e:
-        return _resp(500, {"error": str(e)})
+        # Logs full stack trace to CloudWatch (good for debugging, not exposed to clients)
+        logger.exception("[%s] get_movers failed: %s", request_id, str(e))
+        return _resp(500, {"error": "Internal server error"})
