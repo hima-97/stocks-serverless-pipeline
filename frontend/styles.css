@@ -141,7 +141,9 @@ body {
   border-bottom: 1px solid var(--panel-border);
 }
 
-.right {
+.right,
+.table th.right,
+.table td.right {
   text-align: right;
 }
 
