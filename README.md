@@ -63,13 +63,13 @@ All infrastructure is provisioned with Terraform — no AWS Console clicks requi
 - **S3 backend + DynamoDB lock table** for Terraform remote state.
 
 ```
-                                     ┌─────────────┐
-                    daily cron       │   Massive   │
+                                    ┌─────────────┐
+                  daily cron        │   Massive   │
                ┌──────────────┐     │  Stock API  │
                │  EventBridge │     └──────▲──────┘
                │   Schedule   │            │  HTTP GET /v2/aggs/ticker/{sym}/prev
                └──────┬───────┘            │
-                      │ invoke    ┌────────┴──────────┐
+                      │ invoke    ┌────────┴───────────┐
                       └──────────▶│  Ingest Lambda     │
                                   │  (ingest_mover)    │
                                   │  Python 3.12       │
@@ -77,16 +77,16 @@ All infrastructure is provisioned with Terraform — no AWS Console clicks requi
                                            │ PutItem (1 winner/day)
                                            ▼
                                   ┌──────────────────┐
-                                  │    DynamoDB       │
+                                  │    DynamoDB      │
                                   │  pk = "MOVERS"   │
                                   │  sk = YYYY-MM-DD │
                                   └────────▲─────────┘
                                            │ Query (limit 7, newest first)
                                   ┌────────┴──────────┐
-               ┌──────────────┐   │  Retrieval Lambda  │
-               │ API Gateway  │──▶│  (get_movers)      │
-               │ GET /movers  │◀──│  Python 3.12       │
-               └──────▲───────┘   └────────────────────┘
+               ┌──────────────┐   │  Retrieval Lambda │
+               │ API Gateway  │──▶│  (get_movers)     │
+               │ GET /movers  │◀──│  Python 3.12      │
+               └──────▲───────┘   └───────────────────┘
                       │  fetch(/movers)
                ┌──────┴───────┐
                │  S3 Static   │
