@@ -67,7 +67,7 @@ All infrastructure is provisioned with Terraform — no AWS Console clicks requi
                   daily cron        │   Massive   │
                ┌──────────────┐     │  Stock API  │
                │  EventBridge │     └──────▲──────┘
-               │   Schedule   │            │  HTTP GET /v2/aggs/ticker/{sym}/prev
+               │   Schedule   │            │  HTTP GET /ticker/{sym}/prev
                └──────┬───────┘            │
                       │ invoke    ┌────────┴───────────┐
                       └──────────▶│  Ingest Lambda     │
@@ -101,7 +101,7 @@ All infrastructure is provisioned with Terraform — no AWS Console clicks requi
 ### Data Ingestion Path
 
 1. EventBridge schedule triggers `ingest_mover` Lambda daily.
-2. Lambda calls Massive (Polygon) market data API for each ticker in the watchlist.
+2. Lambda calls Massive market data API for each ticker in the watchlist.
 3. Lambda computes `% change = ((close - open) / open) * 100`.
 4. Lambda selects the single winner by largest absolute `% change`.
 5. Lambda writes one item per day to DynamoDB (`pk=MOVERS`, `sk=YYYY-MM-DD`).
@@ -306,7 +306,7 @@ export TF_VAR_massive_api_key="YOUR_MASSIVE_API_KEY"
 
 - PowerShell (Windows):
 
-```bash
+```powershell
 $env:TF_VAR_massive_api_key="YOUR_MASSIVE_API_KEY"
 ```
 
@@ -320,7 +320,7 @@ echo 'massive_api_key = "YOUR_MASSIVE_API_KEY"' > dev.tfvars
 
 - PowerShell (Windows):
 
-```bash
+```powershell
 'massive_api_key = "YOUR_MASSIVE_API_KEY"' | Out-File -Encoding ascii dev.tfvars
 ```
 
@@ -399,9 +399,11 @@ cat ./ingest_out.json
 
 ```powershell
 $functionName = terraform output -raw ingest_mover_function_name
+
 aws lambda invoke `
   --function-name $functionName `
   --payload '{}' `
+  --cli-binary-format raw-in-base64-out `
   --region us-west-2 `
   .\ingest_out.json
 
@@ -896,14 +898,27 @@ terraform destroy -var-file="dev.tfvars"
 
 `scripts/backfill_to_7_days.py` populates DynamoDB with the last 7 trading days of winner data. This lets the frontend show a full table immediately — without waiting 7 calendar days for the daily cron.
 
+> This is optional. The main pipeline works without it.
+
 **Install dependencies:**
+
+- Bash (macOS / Linux / Git Bash):
 
 ```bash
 cd scripts
 pip install -r requirements.txt
 ```
 
+- PowerShell (Windows):
+
+```powershell
+cd scripts
+pip install -r requirements.txt
+```
+
 **Set environment variables:**
+
+- Bash (macOS / Linux / Git Bash):
 
 ```bash
 export AWS_REGION=us-west-2
@@ -916,10 +931,33 @@ export MASSIVE_API_KEY_PARAM="/stocks-serverless-pipeline-dev/massive_api_key"
 export MASSIVE_API_KEY="YOUR_MASSIVE_API_KEY"
 ```
 
+- PowerShell (Windows):
+
+```powershell
+$env:AWS_REGION = "us-west-2"
+
+# Read Terraform output from the infra/ folder
+$env:TABLE_NAME = (Push-Location ..\infra; terraform output -raw dynamodb_table_name; Pop-Location)
+
+# Option A (recommended): read API key from SSM (SecureString)
+$env:MASSIVE_API_KEY_PARAM = "/stocks-serverless-pipeline-dev/massive_api_key"
+
+# Option B (fallback): provide key directly (do not commit)
+$env:MASSIVE_API_KEY = "YOUR_MASSIVE_API_KEY"
+```
+
 **Run:**
+
+- Bash (macOS / Linux / Git Bash):
 
 ```bash
 python3 backfill_to_7_days.py --end-date YYYY-MM-DD --days 7
+```
+
+- PowerShell (Windows):
+
+```powershell
+python backfill_to_7_days.py --end-date YYYY-MM-DD --days 7
 ```
 
 Replace `--end-date` with the most recent weekday (trading day).
