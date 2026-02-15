@@ -67,7 +67,7 @@ All infrastructure is provisioned with Terraform — no AWS Console clicks requi
                   daily cron        │   Massive   │
                ┌──────────────┐     │  Stock API  │
                │  EventBridge │     └──────▲──────┘
-               │   Schedule   │            │  HTTP GET /ticker/{sym}/prev
+               │   Schedule   │            │  HTTPS GET /prev (per-ticker)
                └──────┬───────┘            │
                       │ invoke    ┌────────┴───────────┐
                       └──────────▶│  Ingest Lambda     │
@@ -896,7 +896,7 @@ terraform destroy -var-file="dev.tfvars"
 
 ## Appendix: Backfill Script (Optional)
 
-`scripts/backfill_to_7_days.py` populates DynamoDB with the last 7 trading days of winner data. This lets the frontend show a full table immediately — without waiting 7 calendar days for the daily cron.
+`scripts/backfill_to_7_days.py` populates DynamoDB with the last N full trading days of winner data (default 7), as of a specified `--end-date`. This lets the frontend show a full table immediately — without waiting 7 calendar days for the daily cron.
 
 > This is optional. The main pipeline works without it.
 
@@ -927,7 +927,7 @@ export TABLE_NAME="$(cd ../infra && terraform output -raw dynamodb_table_name)"
 # Option A (recommended): read API key from SSM
 export MASSIVE_API_KEY_PARAM="/stocks-serverless-pipeline-dev/massive_api_key"
 
-# Option B (fallback): provide key directly
+# Option B (fallback): provide key directly (do not commit)
 export MASSIVE_API_KEY="YOUR_MASSIVE_API_KEY"
 ```
 
@@ -964,11 +964,13 @@ Replace `--end-date` with the most recent weekday (trading day).
 
 **Behavior:**
 
-- Discovers actual trading days (via AAPL calendar) within a 25-day lookback window
-- Skips dates that already have a DynamoDB record (idempotent)
-- Uses the same all-or-nothing logic and `ConditionExpression` as the Lambda
-- Paces API calls at `REQUEST_SPACING_SECONDS` (default 12.5s)
-- Total runtime: ~10 minutes for 7 days × 6 tickers
+- Discovers the last N actual trading dates using AAPL daily bars within a 25-day lookback window `(/v2/aggs/ticker/AAPL/range/1/day/...)`
+- For each trading date, fetches one daily bar per ticker `(/v2/aggs/ticker/{symbol}/range/1/day/{date}/{date})`, computes `% change = ((close - open) / open) * 100`, and picks the largest absolute move
+- Skips dates that already have a DynamoDB record (safe to re-run)
+- Writes with a DynamoDB `ConditionExpression` to enforce one record per date
+- Paces all HTTP calls using `REQUEST_SPACING_SECONDS` (default 12.5s) via a smooth rate limiter
+- Retries HTTP 429/5xx and network/timeouts up to `MAX_ATTEMPTS` (default 4) with exponential backoff `(2**(attempt-1))` capped at `MAX_BACKOFF_SECONDS` (default 10s) plus small jitter
+- All-or-nothing per day: if any ticker fails (or a date mismatch occurs), the script raises and does not write a “partial” winner for that day
 
 **Optional tuning variables:**
 
@@ -978,4 +980,3 @@ Replace `--end-date` with the most recent weekday (trading day).
 | `REQUEST_SPACING_SECONDS` | `12.5` | Delay between API calls |
 | `MAX_ATTEMPTS` | `4` | Retries per call |
 | `MAX_BACKOFF_SECONDS` | `10` | Backoff cap |
-
