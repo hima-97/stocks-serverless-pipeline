@@ -230,7 +230,8 @@ Your AWS credentials need permissions for: IAM, Lambda, DynamoDB, API Gateway, E
 
 ## Full Deploy Instructions
 
-All commands assume a bash-compatible shell. PowerShell users may need to adjust quoting.
+All steps include commands for both Bash (macOS/Linux/Git Bash) and PowerShell (Windows).
+Use the section that matches your shell.
 
 ### Step A — Bootstrap Remote State
 
