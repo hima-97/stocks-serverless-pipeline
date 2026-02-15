@@ -338,14 +338,30 @@ The Massive API key is stored as an SSM SecureString. You only need to provide i
 
 **Option A — Environment variable (recommended, ephemeral):**
 
+- Bash (macOS / Linux / Git Bash):
+
 ```bash
 export TF_VAR_massive_api_key="YOUR_MASSIVE_API_KEY"
 ```
 
+- PowerShell (Windows):
+
+```bash
+$env:TF_VAR_massive_api_key="YOUR_MASSIVE_API_KEY"
+```
+
 **Option B — Gitignored tfvars file:**
+
+- Bash (macOS / Linux / Git Bash):
 
 ```bash
 echo 'massive_api_key = "YOUR_MASSIVE_API_KEY"' > dev.tfvars
+```
+
+- PowerShell (Windows):
+
+```bash
+'massive_api_key = "YOUR_MASSIVE_API_KEY"' | Out-File -Encoding ascii dev.tfvars
 ```
 
 **Then validate and deploy:**
@@ -385,15 +401,26 @@ movers_endpoint            = "https://<api-id>.execute-api.us-west-2.amazonaws.c
 
 **Check the EventBridge rule:**
 
+- Bash (macOS / Linux / Git Bash):
+
 ```bash
 aws events describe-rule \
   --name "$(terraform output -raw eventbridge_rule_name)" \
   --region us-west-2
 ```
 
+- PowerShell (Windows):
+
+```powershell
+$ruleName = terraform output -raw eventbridge_rule_name
+aws events describe-rule --name $ruleName --region us-west-2
+```
+
 Look for `"ScheduleExpression": "cron(30 0 * * ? *)"` — this runs daily at 00:30 UTC.
 
 **Manually trigger ingestion** (don't wait for the cron):
+
+- Bash (macOS / Linux / Git Bash):
 
 ```bash
 aws lambda invoke \
@@ -403,6 +430,19 @@ aws lambda invoke \
   /tmp/ingest_out.json
 
 cat /tmp/ingest_out.json
+```
+
+- PowerShell (Windows):
+
+```powershell
+$functionName = aws lambda list-functions --query "Functions[?contains(FunctionName, 'ingest-mover')].FunctionName" --output text --region us-west-2
+aws lambda invoke `
+  --function-name $functionName `
+  --payload '{}' `
+  --region us-west-2 `
+  C:\temp\ingest_out.json
+
+Get-Content C:\temp\ingest_out.json
 ```
 
 **Expected response (first run, trading day):**
@@ -433,6 +473,8 @@ Key fields to check: `"stored": true`, `"successCount": 6`, `"failureCount": 0`.
 
 ### Step E — Verify DynamoDB Record
 
+- Bash (macOS / Linux / Git Bash):
+
 ```bash
 aws dynamodb query \
   --table-name "$(terraform output -raw dynamodb_table_name)" \
@@ -440,6 +482,19 @@ aws dynamodb query \
   --expression-attribute-values '{":p":{"S":"MOVERS"}}' \
   --scan-index-forward false \
   --limit 7 \
+  --region us-west-2
+```
+
+- PowerShell (Windows):
+
+```powershell
+$tableName = aws dynamodb list-tables --region us-west-2 --query "TableNames[?contains(@, 'top-movers')]" --output text
+aws dynamodb query `
+  --table-name $tableName `
+  --key-condition-expression "pk = :p" `
+  --expression-attribute-values '{":p":{"S":"MOVERS"}}' `
+  --scan-index-forward false `
+  --limit 7 `
   --region us-west-2
 ```
 
@@ -462,8 +517,18 @@ Verify: `Date` is `YYYY-MM-DD`, `Ticker` is one of the watchlist, `PercentChange
 
 ### Step F — Verify GET /movers API
 
+- Bash (macOS / Linux / Git Bash):
+
 ```bash
 curl -s "$(terraform output -raw movers_endpoint)" | python3 -m json.tool
+```
+
+- PowerShell (Windows):
+
+```powershell
+$endpoint = aws apigateway get-rest-apis --query "items[0].id" --output text --region us-west-2
+$url = "https://$endpoint.execute-api.us-west-2.amazonaws.com/dev/movers"
+Invoke-WebRequest -Uri $url | Select-Object -ExpandProperty Content | ConvertFrom-Json | ConvertTo-Json
 ```
 
 **Expected (HTTP 200, JSON array, newest first, up to 7 items):**
@@ -483,8 +548,19 @@ Verify: only public fields (`Date`, `Ticker`, `PercentChange`, `ClosingPrice`) �
 
 **Verify CORS headers:**
 
+- Bash (macOS / Linux / Git Bash):
+
 ```bash
 curl -s -D - "$(terraform output -raw movers_endpoint)" -o /dev/null 2>&1 | grep -i access-control
+```
+
+- PowerShell (Windows):
+
+```powershell
+$endpoint = aws apigateway get-rest-apis --query "items[0].id" --output text --region us-west-2
+$url = "https://$endpoint.execute-api.us-west-2.amazonaws.com/dev/movers"
+$response = Invoke-WebRequest -Uri $url
+$response.Headers.GetEnumerator() | Where-Object { $_.Key -like '*Access-Control*' } | ForEach-Object { Write-Host "$($_.Key): $($_.Value)" }
 ```
 
 Look for: `Access-Control-Allow-Origin: *`
@@ -495,7 +571,15 @@ Look for: `Access-Control-Allow-Origin: *`
 
 Open the S3 website URL:
 
+- Bash (macOS / Linux / Git Bash):
+
 ```bash
+terraform output -raw frontend_website_url
+```
+
+- PowerShell (Windows):
+
+```powershell
 terraform output -raw frontend_website_url
 ```
 
