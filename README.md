@@ -228,47 +228,6 @@ Your AWS credentials need permissions for: IAM, Lambda, DynamoDB, API Gateway, E
 
 ---
 
-## Quick Start
-
-```bash
-# 0. Clone
-git clone https://github.com/hima-97/stocks-serverless-pipeline.git && cd stocks-serverless-pipeline
-
-# Default region is us-west-2 (override via aws_region variable if needed)
-
-# 1. Bootstrap state backend (one-time per AWS account)
-cd infra-bootstrap
-# Derives the state bucket name from your AWS account ID (minimizes global name collisions)
-terraform init && terraform apply
-
-# 2. Point main backend to your bootstrap outputs (one-time manual edit required by Terraform)
-cd ../infra
-#    ⚠ EDIT backend.tf: set bucket = your state_bucket_name from step 1
-terraform init
-
-# 3. Deploy main stack (supply API key on FIRST run only)
-export TF_VAR_massive_api_key="YOUR_MASSIVE_API_KEY"
-terraform apply
-
-# 4. Get endpoints
-terraform output -raw movers_endpoint        # API URL
-terraform output -raw frontend_website_url   # Frontend URL
-
-# 5. Trigger ingestion + test
-aws lambda invoke \
-  --function-name "$(terraform output -raw ingest_mover_function_name)" \
-  --payload '{}' \
-  --region us-west-2 \
-  /tmp/out.json && cat /tmp/out.json
-
-curl -s "$(terraform output -raw movers_endpoint)" | python3 -m json.tool
-
-# 6. Open frontend in browser
-#    (Use the S3 website URL from step 4; do not open frontend/index.html locally)
-```
-
----
-
 ## Full Deploy Instructions
 
 All commands assume a bash-compatible shell. PowerShell users may need to adjust quoting.
@@ -423,26 +382,29 @@ Look for `"ScheduleExpression": "cron(30 0 * * ? *)"` — this runs daily at 00:
 - Bash (macOS / Linux / Git Bash):
 
 ```bash
-aws lambda invoke \
-  --function-name "$(terraform output -raw ingest_mover_function_name)" \
-  --payload '{}' \
-  --region us-west-2 \
-  /tmp/ingest_out.json
+function_name=$(terraform output -raw ingest_mover_function_name)
 
-cat /tmp/ingest_out.json
+aws lambda invoke \
+  --function-name "$function_name" \
+  --payload '{}' \
+  --cli-binary-format raw-in-base64-out \
+  --region us-west-2 \
+  ./ingest_out.json
+
+cat ./ingest_out.json
 ```
 
 - PowerShell (Windows):
 
 ```powershell
-$functionName = aws lambda list-functions --query "Functions[?contains(FunctionName, 'ingest-mover')].FunctionName" --output text --region us-west-2
+$functionName = terraform output -raw ingest_mover_function_name
 aws lambda invoke `
   --function-name $functionName `
   --payload '{}' `
   --region us-west-2 `
-  C:\temp\ingest_out.json
+  .\ingest_out.json
 
-Get-Content C:\temp\ingest_out.json
+Get-Content .\ingest_out.json
 ```
 
 **Expected response (first run, trading day):**
@@ -480,7 +442,7 @@ aws dynamodb query \
   --table-name "$(terraform output -raw dynamodb_table_name)" \
   --key-condition-expression "pk = :p" \
   --expression-attribute-values '{":p":{"S":"MOVERS"}}' \
-  --scan-index-forward false \
+  --no-scan-index-forward \
   --limit 7 \
   --region us-west-2
 ```
@@ -488,12 +450,20 @@ aws dynamodb query \
 - PowerShell (Windows):
 
 ```powershell
-$tableName = aws dynamodb list-tables --region us-west-2 --query "TableNames[?contains(@, 'top-movers')]" --output text
+$tableName = terraform output -raw dynamodb_table_name
+
+$exprValues = @{
+  ":p" = @{ "S" = "MOVERS" }
+} | ConvertTo-Json -Compress
+
+$exprFile = Join-Path $env:TEMP "expr_values.json"
+$exprValues | Out-File -Encoding ascii $exprFile
+
 aws dynamodb query `
   --table-name $tableName `
   --key-condition-expression "pk = :p" `
-  --expression-attribute-values '{":p":{"S":"MOVERS"}}' `
-  --scan-index-forward false `
+  --expression-attribute-values file://$exprFile `
+  --no-scan-index-forward `
   --limit 7 `
   --region us-west-2
 ```
@@ -526,9 +496,8 @@ curl -s "$(terraform output -raw movers_endpoint)" | python3 -m json.tool
 - PowerShell (Windows):
 
 ```powershell
-$endpoint = aws apigateway get-rest-apis --query "items[0].id" --output text --region us-west-2
-$url = "https://$endpoint.execute-api.us-west-2.amazonaws.com/dev/movers"
-Invoke-WebRequest -Uri $url | Select-Object -ExpandProperty Content | ConvertFrom-Json | ConvertTo-Json
+$endpoint = terraform output -raw movers_endpoint
+Invoke-RestMethod -Uri $endpoint | ConvertTo-Json -Depth 5
 ```
 
 **Expected (HTTP 200, JSON array, newest first, up to 7 items):**
@@ -551,16 +520,18 @@ Verify: only public fields (`Date`, `Ticker`, `PercentChange`, `ClosingPrice`) �
 - Bash (macOS / Linux / Git Bash):
 
 ```bash
-curl -s -D - "$(terraform output -raw movers_endpoint)" -o /dev/null 2>&1 | grep -i access-control
+curl -s -D - "$(terraform output -raw movers_endpoint)" -o /dev/null | grep -i access-control
 ```
 
 - PowerShell (Windows):
 
 ```powershell
-$endpoint = aws apigateway get-rest-apis --query "items[0].id" --output text --region us-west-2
-$url = "https://$endpoint.execute-api.us-west-2.amazonaws.com/dev/movers"
-$response = Invoke-WebRequest -Uri $url
-$response.Headers.GetEnumerator() | Where-Object { $_.Key -like '*Access-Control*' } | ForEach-Object { Write-Host "$($_.Key): $($_.Value)" }
+$endpoint = terraform output -raw movers_endpoint
+$response = Invoke-WebRequest -Uri $endpoint -Method GET -UseBasicParsing
+
+$response.Headers.GetEnumerator() |
+  Where-Object { $_.Key -like '*Access-Control*' } |
+  ForEach-Object { "$($_.Key): $($_.Value)" }
 ```
 
 Look for: `Access-Control-Allow-Origin: *`
