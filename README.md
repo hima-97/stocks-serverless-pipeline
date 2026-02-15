@@ -681,7 +681,9 @@ An `OPTIONS /movers` preflight endpoint is also configured (MOCK integration) re
 
 ### Request pacing
 
-The ingestion Lambda spaces Massive API calls by `REQUEST_SPACING_SECONDS` (default 12.5s) using a `SmoothRateLimiter`. With 6 tickers, baseline execution time is ~75 seconds.
+The ingestion Lambda spaces Massive API calls by `REQUEST_SPACING_SECONDS` (default 12.5s) using a `SmoothRateLimiter`.  
+On a new trading day, with 6 tickers and 12.5s spacing, baseline execution time is ~75 seconds.  
+On idempotent runs (record already exists), only one API call is made (~12.5s).
 
 ### Retry & backoff
 
@@ -970,6 +972,7 @@ Replace `--end-date` with the most recent weekday (trading day).
 - Writes with a DynamoDB `ConditionExpression` to enforce one record per date
 - Paces all HTTP calls using `REQUEST_SPACING_SECONDS` (default 12.5s) via a smooth rate limiter
 - Retries HTTP 429/5xx and network/timeouts up to `MAX_ATTEMPTS` (default 4) with exponential backoff `(2**(attempt-1))` capped at `MAX_BACKOFF_SECONDS` (default 10s) plus small jitter
+  - Note: The backfill script uses a simplified exponential backoff model (2**(attempt-1)), whereas the ingestion Lambda uses separate base backoff values for 429 and 5xx errors via environment variables.
 - All-or-nothing per day: if any ticker fails (or a date mismatch occurs), the script raises and does not write a “partial” winner for that day
 
 **Optional tuning variables:**
